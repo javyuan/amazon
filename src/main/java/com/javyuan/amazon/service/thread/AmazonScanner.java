@@ -11,14 +11,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
+import javax.mail.internet.MimeMessage;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 
 import com.javyuan.amazon.model.bean.PriceHistory;
+import com.javyuan.amazon.model.bean.User;
+import com.javyuan.amazon.model.bean.UserProduct;
 import com.javyuan.amazon.model.common.BusinessException;
 import com.javyuan.amazon.model.dao.PriceHistoryDao;
 import com.javyuan.amazon.service.utils.ParseUtils;
+import com.javyuan.amazon.service.utils.SpringContextHolder;
 
 /**
  * @author javyuan
@@ -31,31 +39,55 @@ public class AmazonScanner implements Runnable {
 	private static final String AMAZON_URL = "https://www.amazon.com/gp/aw/d/";
 //	private static final String AMAZON_URL = "https://www.amazon.com/View-Master-Virtual-Reality-Starter-Pack/dp/";
 	private static final String AMAZON_PARAM = "?ie=UTF8&*Version*=1&*entries*=0";
-	private String productId;
 	
-	PriceHistoryDao priceHistoryDao;
+	private UserProduct userProduct;
+	private User user;
+	private PriceHistoryDao priceHistoryDao = SpringContextHolder.getBean(PriceHistoryDao.class);
+	private JavaMailSender javaMailSender = SpringContextHolder.getBean(JavaMailSender.class);
 	
-	public AmazonScanner(String productId, PriceHistoryDao priceHistoryDao) {
-		this.productId = productId;
-		this.priceHistoryDao = priceHistoryDao;
+	public AmazonScanner(UserProduct userProduct, User user) {
+		this.userProduct = userProduct;
+		this.user = user;
 	}
 	
 	@Override
 	public void run() {
 		log.debug("AmazonScanner start run");
 		// 开始扫描
-		Map<String,Object> map = scan(productId);
+		Map<String,Object> map = scan(userProduct.getProductId());
 		if (map == null) {
 			return;
 		}
 		// 保存结果
 		PriceHistory bean = new PriceHistory();
 		bean.setCreateDate(new Date());
-		bean.setProductId(productId);
+		bean.setProductId(userProduct.getProductId());
 		bean.setPrice((BigDecimal)map.get("price"));
 		bean.setShipFee((BigDecimal)map.get("shipFee"));
 		bean.setGlobalShip((String)map.get("globalShip"));
 		priceHistoryDao.insert(bean);
+		// 发送通知
+		if (bean.getPrice().compareTo(userProduct.getRemindPrice()) < 0) {
+			log.debug("send email");
+			MimeMessage mail = javaMailSender.createMimeMessage();
+			try {
+				MimeMessageHelper helper = new MimeMessageHelper(mail, false);
+				helper.setFrom("yuanjifeng1@sohu.com");
+				helper.setReplyTo("yuanjifeng1@sohu.com");
+				helper.setSentDate(new Date());
+				helper.setTo("yuanjifeng1@qq.com");
+				helper.setSubject("Amazon.com降价通知");
+				helper.setText("商品" + map.get("name") + "降价通知，最新价格：$" + bean.getPrice());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			javaMailSender.send(mail);
+		}
 	}
 	
 	public static Map<String, Object> scan(String productId){
@@ -122,6 +154,13 @@ public class AmazonScanner implements Runnable {
 			e.printStackTrace();
 			return null;
 		}
+	}
+	
+	
+	public static void main(String[] args) {
+		BigDecimal b1 = new BigDecimal(1);
+		BigDecimal b2 = new BigDecimal(20);
+		System.out.println(b2.compareTo(b1));
 	}
 	
 }

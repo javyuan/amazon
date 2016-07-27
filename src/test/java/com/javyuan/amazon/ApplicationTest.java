@@ -17,7 +17,7 @@ import com.javyuan.amazon.model.dao.UserProductDao;
 @SpringApplicationConfiguration(classes = Application.class)
 @WebAppConfiguration
 public class ApplicationTest {
-	
+
 	@Autowired
 	UserProductDao userProductDao; 
 	

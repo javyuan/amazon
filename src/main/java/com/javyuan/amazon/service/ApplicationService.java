@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
+import com.javyuan.amazon.model.bean.User;
 import com.javyuan.amazon.model.bean.UserProduct;
 import com.javyuan.amazon.model.dao.PriceHistoryDao;
+import com.javyuan.amazon.model.dao.UserDao;
 import com.javyuan.amazon.model.dao.UserProductDao;
 import com.javyuan.amazon.service.thread.AmazonScanner;
 
@@ -29,11 +31,13 @@ public class ApplicationService {
 	@Autowired
 	UserProductDao userProductDao;
 	@Autowired
+	UserDao userDao;
+	@Autowired
 	PriceHistoryDao priceHistoryDao;
 
 	/**
-	 * 每12个小时运行一次
-	 * TODO 使用线程池管理
+	 * 定时任务抓取amazon商品信息，每12个小时运行一次
+	 * TODO 使用线程池管理AmazonScanner
 	 */
 	@Scheduled(fixedRate = 12 * 60 * 60 * 1000)
 	public void scanTask(){
@@ -48,7 +52,7 @@ public class ApplicationService {
 				continue;
 			}
 			pidMap.put(userProduct.getProductId(), null);
-			new Thread(new AmazonScanner(userProduct.getProductId(),priceHistoryDao)).start();
+			new Thread(new AmazonScanner(userProduct,userDao.queryOne(new User(userProduct.getUserId())))).start();
 		}
 	}
 }
