@@ -11,13 +11,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
-import javax.mail.internet.MimeMessage;
+import javax.mail.MessagingException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 
 import com.javyuan.amazon.model.bean.PriceHistory;
@@ -25,6 +22,7 @@ import com.javyuan.amazon.model.bean.User;
 import com.javyuan.amazon.model.bean.UserProduct;
 import com.javyuan.amazon.model.common.BusinessException;
 import com.javyuan.amazon.model.dao.PriceHistoryDao;
+import com.javyuan.amazon.service.EmailService;
 import com.javyuan.amazon.service.utils.ParseUtils;
 import com.javyuan.amazon.service.utils.SpringContextHolder;
 
@@ -43,7 +41,7 @@ public class AmazonScanner implements Runnable {
 	private UserProduct userProduct;
 	private User user;
 	private PriceHistoryDao priceHistoryDao = SpringContextHolder.getBean(PriceHistoryDao.class);
-	private JavaMailSender javaMailSender = SpringContextHolder.getBean(JavaMailSender.class);
+	private EmailService emailService = SpringContextHolder.getBean(EmailService.class);
 	
 	public AmazonScanner(UserProduct userProduct, User user) {
 		this.userProduct = userProduct;
@@ -52,7 +50,6 @@ public class AmazonScanner implements Runnable {
 	
 	@Override
 	public void run() {
-		log.debug("AmazonScanner start run");
 		// 开始扫描
 		Map<String,Object> map = scan(userProduct.getProductId());
 		if (map == null) {
@@ -62,31 +59,34 @@ public class AmazonScanner implements Runnable {
 		PriceHistory bean = new PriceHistory();
 		bean.setCreateDate(new Date());
 		bean.setProductId(userProduct.getProductId());
+		bean.setProductName((String)map.get("name"));
 		bean.setPrice((BigDecimal)map.get("price"));
 		bean.setShipFee((BigDecimal)map.get("shipFee"));
 		bean.setGlobalShip((String)map.get("globalShip"));
 		priceHistoryDao.insert(bean);
 		// 发送通知
 		if (bean.getPrice().compareTo(userProduct.getRemindPrice()) < 0) {
-			log.debug("send email");
-			MimeMessage mail = javaMailSender.createMimeMessage();
 			try {
-				MimeMessageHelper helper = new MimeMessageHelper(mail, false);
-				helper.setFrom("yuanjifeng1@sohu.com");
-				helper.setReplyTo("yuanjifeng1@sohu.com");
-				helper.setSentDate(new Date());
-				helper.setTo("yuanjifeng1@qq.com");
-				helper.setSubject("Amazon.com降价通知");
-				helper.setText("商品" + map.get("name") + "降价通知，最新价格：$" + bean.getPrice());
-			} catch (Exception e) {
+				emailService.sendTextMail(user.getEmail(), "Amazon.com降价通知", "商品" + map.get("name") + "降价通知，最新价格：$" + bean.getPrice());
+			} catch (MessagingException e) {
 				e.printStackTrace();
 			}
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			javaMailSender.send(mail);
+//			MimeMessage mail = javaMailSender.createMimeMessage();
+//			try {
+//				MimeMessageHelper helper = new MimeMessageHelper(mail, false);
+//				helper.setFrom("yuanjifeng1@sohu.com");
+//				helper.setReplyTo("yuanjifeng1@sohu.com");
+//				helper.setSentDate(new Date());
+//				helper.setTo(user.getEmail());
+//				helper.setSubject("Amazon.com降价通知");
+//				helper.setText("商品" + map.get("name") + "降价通知，最新价格：$" + bean.getPrice());
+//				// 不知道什么原因，不sleep无法成功发送邮件
+//				Thread.sleep(1000);
+//				javaMailSender.send(mail);
+//				log.debug("send email success :" + user.getEmail());
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
 		}
 	}
 	
@@ -98,7 +98,7 @@ public class AmazonScanner implements Runnable {
 		try {
 			// 请求Amazon.com
 			URL url = new URL(AMAZON_URL + productId + AMAZON_PARAM);
-			log.info(url);
+			log.debug("request :" + url.toString());
 			URLConnection connection = url.openConnection();
 			connection.setRequestProperty("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
 			connection.setRequestProperty("Accept-Encoding", "gzip");
@@ -111,7 +111,7 @@ public class AmazonScanner implements Runnable {
 			connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36");
 			connection.connect();
 			// 打印Http请求结果
-			log.info(connection.getHeaderField(null));
+			log.debug("response :" + connection.getHeaderField(null));
 			// 接收HTML
 			String html = readHTML(connection.getInputStream());
 			if (StringUtils.isEmpty(html)) {
@@ -120,6 +120,7 @@ public class AmazonScanner implements Runnable {
 			// 解析HTML（substring出自己需要的那部分HTML）
 			return parseHTML(html.substring(html.indexOf("<span id=\"productTitle\" class=\"a-size-large\""), html.indexOf("<div id=\"hqpWrapper\" class=\"centerColAlign\">")));
 		} catch (BusinessException e) {
+			log.error(e.getMessage());
 			return null;
 		}  catch (Exception e) {
 			e.printStackTrace();

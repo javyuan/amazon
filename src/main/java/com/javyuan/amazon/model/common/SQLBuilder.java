@@ -150,7 +150,11 @@ public class SQLBuilder<T> {
 		while(it.hasNext()){
 			String key = it.next();
 			sb.append(CamelCaseUtils.toUnderlineName(key).toUpperCase());
-			sb.append(" = ");
+			if (key.lastIndexOf("Date") > 0) {
+				sb.append(" >= ");
+			} else{
+				sb.append(" = ");
+			}
 			sb.append(":");
 			sb.append(key);
 			sb.append(" AND ");

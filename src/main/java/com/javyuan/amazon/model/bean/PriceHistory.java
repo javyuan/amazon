@@ -10,6 +10,7 @@ import com.javyuan.amazon.model.base.BaseBean;
  */
 public class PriceHistory extends BaseBean {
 	private String productId;
+	private String productName;
 	private Date createDate;
 	private BigDecimal price;
 	private String globalShip;
@@ -29,6 +30,14 @@ public class PriceHistory extends BaseBean {
 
 	public void setProductId(String productId) {
 		this.productId = productId;
+	}
+
+	public String getProductName() {
+		return productName;
+	}
+
+	public void setProductName(String productName) {
+		this.productName = productName;
 	}
 
 	public Date getCreateDate() {

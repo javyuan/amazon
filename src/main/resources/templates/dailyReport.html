@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>日报</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport"
+	content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" />
+</head>
+<table>
+	<thead>日报
+	</thead>
+	<tbody>
+		<tr>
+			<th>商品编码</th>
+			<th>商品名称</th>
+			<th>当前价格</th>
+			<th>最低价格</th>
+			<th>直邮</th>
+			<th>运费</th>
+		</tr>
+		<tr th:each="p : ${productList}">
+			<td th:text="${p.productId}"></td>
+			<td th:text="${p.productName}"></td>
+			<td th:text="${p.currentPrice}"></td>
+			<td th:text="${p.leastPrice}"></td>
+			<td th:text="${p.globalShip}"></td>
+			<td th:text="${p.shipFee}"></td>
+		</tr>
+	</tbody>
+</table>
+<body>
+</body>
+</html>
