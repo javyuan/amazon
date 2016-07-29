@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS `price_history`;
 CREATE TABLE `price_history` (
   `id` int(64) unsigned NOT NULL AUTO_INCREMENT,
   `product_id` varchar(64) NOT NULL,
+  `product_name` varchar(255) DEFAULT NULL,
   `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `price` decimal(10,2) DEFAULT NULL,
   `global_ship` char(1) DEFAULT NULL COMMENT '是否直邮到中国',
@@ -30,14 +31,6 @@ CREATE TABLE `price_history` (
   KEY `idx_pid` (`product_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8;
 
--- ----------------------------
--- Records of price_history
--- ----------------------------
-INSERT INTO `price_history` VALUES ('29', 'B00IE3ELIW', '2016-07-26 15:53:15', '29.99', 'N', '0.00');
-INSERT INTO `price_history` VALUES ('30', 'B011EG5HJ2', '2016-07-26 15:53:16', '12.59', 'Y', '6.21');
-INSERT INTO `price_history` VALUES ('31', 'B00FBWFVK6', '2016-07-26 15:53:17', '26.25', 'N', '0.00');
-INSERT INTO `price_history` VALUES ('32', 'B0053FXGUI', '2016-07-26 15:53:17', '14.99', 'Y', '8.66');
-INSERT INTO `price_history` VALUES ('33', 'B00TV0T0HY', '2016-07-26 15:53:17', '45.58', 'Y', '6.86');
 
 -- ----------------------------
 -- Table structure for product
@@ -49,11 +42,6 @@ CREATE TABLE `product` (
   `image` varchar(512) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of product
--- ----------------------------
-INSERT INTO `product` VALUES ('B011EG5HJ2', 'View-Master Virtual Reality Starter Pack', 'http://www.view-master.com/en-US/Images/ViewerStarterPack_tcm1147-251976.jpg');
 
 -- ----------------------------
 -- Table structure for user
